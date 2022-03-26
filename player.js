@@ -10,6 +10,12 @@ let tipCss;
 /* global for Tip state*/
 let currStepIdx = 0;
 
+
+/*
+*
+* Adds JQUERY to document. After it loads, runs loadGls.
+*
+* */
 function addJquery() {
     var script = document.createElement('script');
     script.src = 'https://code.jquery.com/jquery-3.6.0.min.js';
@@ -18,6 +24,11 @@ function addJquery() {
     script.onload = loadGls;
 }
 
+/*
+*
+* Adds the main CSS from the word document task
+*
+* */
 function addMainCss() {
     var css = document.createElement('link');
     css.rel = 'stylesheet';
@@ -25,6 +36,11 @@ function addMainCss() {
     document.getElementsByTagName('head')[0].appendChild(css);
 }
 
+/*
+*
+* Fetches data from JSON CDN. After it gets the data, it runs addTipObject(because of getJSON is async).
+*
+* */
 function fetchDataFromJson() {
     $.getJSON(GLS_JSON_URL, function (json) {
         data = json.data;
@@ -36,8 +52,62 @@ function fetchDataFromJson() {
     });
 }
 
+/*
+*
+* Sets Tip's object position according the right selectors from JSON data
+*
+* */
+function setTipPosition() {
+    let stepAction = steps[currStepIdx].action;
+    let targetSelector = stepAction.selector;
+    if (!targetSelector || !$(targetSelector)[0]) {
+        // for first tip which does not attached to any valid selector
+        const viewPortRect = $("body")[0].getBoundingClientRect();
+        (window.jQuery)('.sttip').css({
+            position: 'absolute',
+            top: viewPortRect.bottom / 2,
+            left: viewPortRect.right / 2
+        });
+        return;
+    }
 
+    let targetSelectorRect = $(targetSelector)[0].getBoundingClientRect();
+    let tipPosition;
 
+    switch (stepAction.placement) {
+        case ("right"): {
+            tipPosition = {top:targetSelectorRect.top, left:targetSelectorRect.right};
+            break;
+        }
+        case ("bottom"): {
+            tipPosition = {top:targetSelectorRect.bottom, left:targetSelectorRect.left};
+            break;
+        }
+    }
+    $('.sttip').css({position: 'absolute', ...tipPosition});
+}
+
+/*
+*
+* Configures Tip object properties: position, content.
+*
+* */
+function configureTipProperties() {
+    $("span[data-iridize-role='stepCount']").text(currStepIdx + 1);
+    const stepAction = steps[currStepIdx].action;
+    let content;
+    if (stepAction.type === "tip") {
+        content = stepAction.contents["#content"];
+        setTipPosition();
+        $("div[data-iridize-id='content']").html(content);
+    }
+}
+
+/*
+*
+* onClick action for 'Next' button
+*
+* */
 function onNextClick() {
     let nextStepId = steps[currStepIdx].followers[0].next;
     currStepIdx = steps.findIndex(value => value.id === nextStepId);
@@ -47,8 +117,14 @@ function onNextClick() {
     if (currStepIdx === steps.length - 2) {
         $("a[data-iridize-role='nextBt']").css({display: 'none'})
     }
+    configureTipProperties();
 }
 
+/*
+*
+* onClick action for 'back' button
+*
+* */
 function onPrevClick() {
     currStepIdx--;
     if (currStepIdx === 0) {
@@ -57,12 +133,22 @@ function onPrevClick() {
     if (currStepIdx < steps.length - 1) {
         $("a[data-iridize-role='nextBt']").css({display: 'block'})
     }
+    configureTipProperties();
 }
 
+/*
+*
+* onClick action for 'close' button
+*
+* */
 function onCloseClick() {
     $('.sttip').css({display: 'none'});
 }
 
+/*
+*
+* Binds actions to buttons on Tip object
+* */
 function bindActionToButtons() {
     $("a[data-iridize-role='nextBt']").click(onNextClick);
     $("button[data-iridize-role='prevBt']").click(onPrevClick);
@@ -70,6 +156,11 @@ function bindActionToButtons() {
 
 }
 
+/*
+*
+* Adds tip object CSS and HTML code, and configures it.
+*
+* */
 function addTipObject() {
     $("head").append("<style>" + tipCss + "</style>");
     $("body").append(
@@ -86,13 +177,29 @@ function addTipObject() {
     $("span[data-iridize-role='stepsCount']").text(steps.length - 1);
 
     bindActionToButtons();
+    configureTipProperties();
 }
 
+/*
+*
+* Loads the GLS engine
+*
+* */
 function loadGls() {
     addMainCss();
     fetchDataFromJson();
 }
 
-addJquery();
+/*
+*
+* Runs the whole program
+*
+* */
+function run() {
+    addJquery();
+}
+
+run();
+
 
 
